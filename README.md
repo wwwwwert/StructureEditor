@@ -4,9 +4,10 @@
 
 # Usage
 
-1. Open structure image
-2. Create markup
-3. Build and export histogram
+1. Run structure_editor.py
+2. Open structure image
+3. Create markup
+4. Build and export histogram
 
 # Interface
 
