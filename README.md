@@ -12,15 +12,15 @@
 
 Program has classic window with all tools in Top Menu. 
 
-Use "File" $\rightarrow$ "Open" to select structure image. Only one image can be opened at a time.
+Use "File" -> "Open" to select structure image. Only one image can be opened at a time.
 
-Markup Tools are available at "Selection" $\rightarrow$ "Create Selection" section.
+Markup Tools are available at "Selection" -> "Create Selection" section.
 
-After creating markup you can edit it with tools from "Selection" $\rightarrow$ "Edit Selection" section.
+After creating markup you can edit it with tools from "Selection" -> "Edit Selection" section.
 
-When markup is done and unit line is selected use "Statistics" $\rightarrow$ "Build Graph and Table" to create histogram and table with structures discription.
+When markup is done and unit line is selected use "Statistics" -> "Build Graph and Table" to create histogram and table with structures discription.
 
-Use "Statistics" $\rightarrow$ "Save Graph" to export histogram. 
+Use "Statistics" -> "Save Graph" to export histogram. 
 
 You can navigate between pages by selecting tab on the top.  
 
