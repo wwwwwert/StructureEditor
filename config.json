@@ -1,0 +1,19 @@
+{
+  "canvas_size": 450,
+  "circle_outline": "blue",
+  "custom_selection_outline": "blue",
+  "unit_line_color": "lightgreen",
+  "axle_color": "yellow",
+  "oval_color": "orange",
+  "edge_color": "green",
+  "vertex_fill": "red",
+  "sizes": {
+    "dash": {
+      "dash": 10,
+      "space": 10
+    },
+    "line_width": 2,
+    "unit_line_width": 4,
+    "vertex_circle_radius": 5
+  }
+}
