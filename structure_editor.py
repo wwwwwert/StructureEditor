@@ -15,7 +15,7 @@ from interface_config import InterfaceConfig
 class MicrostructurePhotoEditor:
     def __init__(self):
         self.root = Tk()
-        self.root.attributes('-fullscreen', True)
+        # self.root.attributes('-fullscreen', True)
         self.root.state('zoomed')
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()
@@ -61,6 +61,9 @@ class MicrostructurePhotoEditor:
         creating_selection_menu.add_command(
             label="Сircle selection with auto-detection",
             command=self.selection_editor.start_circle_area_selection_with_detect)
+        creating_selection_menu.add_command(
+            label="Select all circles",
+            command=self.selection_editor.detect_all_circles)
         creating_selection_menu.add_command(label="Ellipse selection",
                                             command=self.selection_editor.start_ellipse_area_selection)
         creating_selection_menu.add_command(label="Polyhedron selection",
@@ -91,6 +94,8 @@ class MicrostructurePhotoEditor:
                               command=self.build_plot_and_table)
         plot_menu.add_command(label="Save graph",
                               command=self.plot_editor.save_plot)
+        plot_menu.add_command(label="Save table",
+                              command=self.plot_editor.save_table)
         menu_bar.add_cascade(label="Statistics", menu=plot_menu)
 
         self.root.configure(menu=menu_bar)
@@ -121,7 +126,8 @@ class MicrostructurePhotoEditor:
 
         while self.image_tabs.select():
             self.image_tabs.forget(self.image_tabs.select())
-            self.graph_tab = None
+        self.graph_tab = None
+        self.table_tab = None
 
         image_tab = Frame(self.image_tabs,
                           width=self.screen_width,
@@ -167,9 +173,11 @@ class MicrostructurePhotoEditor:
                                    master=self.graph_tab)
         canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
         canvas.draw()
-
         self.image_tabs.add(self.graph_tab, text="Plot")
         self.image_tabs.select(self.graph_tab)
+        width, heigh = canvas.get_width_height()
+        self.image_tabs.config(width=width, heigh=heigh)
+
 
     def _close(self, event):
         self.root.attributes('-fullscreen', False)

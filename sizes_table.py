@@ -14,7 +14,7 @@ class SizesTable:
         self.selection_editor = selection_editor
         self.frame = frame
         self.configure_style()
-        self.selection_editor.objects_manager.group_objects(
+        self.selection_editor.objects_manager.create_lines(
             self.selection_editor.pixel_proportion)
         self.create_table()
 
@@ -42,25 +42,6 @@ class SizesTable:
 
         self.tree.pack(padx=5, pady=5)
 
-        for group in self.selection_editor.objects_manager.groups:
-            self.add_group(group)
-
-    def add_group(self, group):
-        index = self.tree.insert('', END, text="Group " + str(group.id),
-                                 values=('', '', '', group.total_size))
-        self.add_subgroup(index, "64% - 88%", group.left_col)
-        self.add_subgroup(index, "88% - 112%", group.main_col)
-        self.add_subgroup(index, "112% - 136%", group.right_col)
-
-    def add_subgroup(self, parent, text, subgroup):
-        if len(subgroup) == 0:
-            return
-
-        total_size = 0
-        for _, _, _, _, size in subgroup:
-            total_size += float(size)
-        id = self.tree.insert(parent, END, text=text,
-                              values=('', '', '', total_size))
-        for line in subgroup:
-            self.tree.insert(id, END, text=line[0],
-                             values=(line[1], line[2], line[3], line[4]))
+        for id, info in enumerate(self.selection_editor.objects_manager.lines,
+                                  1):
+            self.tree.insert("", END, text="S" + str(id), values=info)

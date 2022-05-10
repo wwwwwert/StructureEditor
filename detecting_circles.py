@@ -41,7 +41,7 @@ def nms(og_borders, stretch_factor=2):
     return og_borders
 
 
-def find_circles_with_radius_distance(path, radius):
+def find_circles_with_radius_distance(path, radius=0, original_center=None):
     im = cv2.imread(path)
 
     if im is None:
@@ -64,12 +64,12 @@ def find_circles_with_radius_distance(path, radius):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     morph = cv2.morphologyEx(bw, cv2.MORPH_CLOSE, kernel)
     dist = cv2.distanceTransform(morph, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    borderSize = int(radius * 1.1)
+    borderSize = int(radius * 1.1) if radius != 0 else 30
     distborder = cv2.copyMakeBorder(dist, borderSize, borderSize,
                                     borderSize, borderSize,
                                     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
                                     0)
-    gap = int(radius * 0.9)
+    gap = int(radius * 0.9) if radius != 0 else 10
     kernel2 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (
         2 * (borderSize - gap) + 1, 2 * (borderSize - gap) + 1))
     kernel2 = cv2.copyMakeBorder(kernel2, gap, gap, gap, gap,
@@ -91,12 +91,20 @@ def find_circles_with_radius_distance(path, radius):
         x, y, w, h = cv2.boundingRect(contours[i])
         borders.append((x, y, w, h))
 
+    if radius != 0:
+        borders.append((*original_center, radius, radius))
+        nms(borders)
+
     for x, y, w, h in nms(borders):
         _, mx, _, mxloc = cv2.minMaxLoc(dist[y:y + h, x:x + w],
                                         peaks8u[y:y + h, x:x + w])
         circle_radius = mx
 
-        if not (0.9 * radius <= circle_radius <= 1.1 * radius):
+        if not (0.85 * radius <= circle_radius <= 1.15 * radius) \
+                and radius != 0:
+            continue
+
+        if radius == 0 and circle_radius <= 12:
             continue
 
         circles.append((mxloc[0] + x, mxloc[1] + y, circle_radius))
@@ -104,7 +112,7 @@ def find_circles_with_radius_distance(path, radius):
     return circles
 
 
-def find_circles_with_radius_filter2d(path, radius):
+def find_circles_with_radius_filter2d(path, radius=0, original_center=None):
     img = cv2.imread(path)
 
     if img is None:
@@ -170,6 +178,10 @@ def find_circles_with_radius_filter2d(path, radius):
         x, y, w, h = cv2.boundingRect(contours[i])
         borders.append((x, y, w, h))
 
+    if radius != 0:
+        borders.append((*original_center, radius, radius))
+        nms(borders)
+
     for x, y, w, h in nms(borders):
         _, _, _, maxloc = cv2.minMaxLoc(filter_result[y:y + h, x:x + w],
                                         peaks8u[y:y + h, x:x + w])
@@ -186,7 +198,7 @@ def find_circles_with_radius_filter2d(path, radius):
     return circles
 
 
-def find_circles_with_radius_hough(path, radius):
+def find_circles_with_radius_hough(path, radius=0, original_center=None):
     img = cv2.imread(path)
     if img is None:
         mb.showwarning("Warning", "Original image was removed")
@@ -195,15 +207,40 @@ def find_circles_with_radius_hough(path, radius):
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     img_gray = cv2.medianBlur(img_gray, 5)
 
-    circles = cv2.HoughCircles(img_gray, cv2.HOUGH_GRADIENT, 2,
-                               radius * 1.75,
-                               param1=50, param2=30,
-                               minRadius=int(radius * 0.9),
-                               maxRadius=int(radius * 1.1))
+    circles = None
+    if radius != 0:
+        circles = cv2.HoughCircles(img_gray, cv2.HOUGH_GRADIENT, 2,
+                                   radius * 1.75,
+                                   param1=50, param2=30,
+                                   minRadius=int(radius * 0.9),
+                                   maxRadius=int(radius * 1.1))
+    else:
+        circles = cv2.HoughCircles(img_gray, cv2.HOUGH_GRADIENT, 2,
+                                   50, param1=100, param2=50, minRadius=10)
+        # 120 30
+        # 120 35
+        # 120 40
+        # 130 32
+        # 130 35 - cool
+    if circles is None:
+        return list()
 
     res = list()
-    if circles is not None:
-        for i in circles[0, :]:
-            res.append((i[0], i[1], i[2]))
+    borders = list()
+
+    for i in circles[0, :]:
+        borders.append((i[0] - i[2] / 2, i[1] - i[2] / 2, i[2], i[2]))
+
+    if len(circles[0, :]) > 100 and radius == 0:
+        return list()
+
+    if radius != 0:
+        x, y = original_center
+        borders.append((x - radius / 2, y - radius / 2, radius, radius))
+
+    # borders = nms(borders, 1)
+
+    for x, y, r1, r2 in borders:
+        res.append((x + r1 / 2, y + r1 / 2, r1))
 
     return res

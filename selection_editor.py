@@ -8,15 +8,6 @@ import detecting_circles
 from objects_manager import ObjectsManager
 
 
-def check_circle_on_canvas(items, x0, y0, og_radius):
-    for circle in items.keys():
-        type, x, y, radius = items[circle]
-        if (int(x0) // 5, int(y0) // 5, int(og_radius) // 5) == (
-                int(x) // 5, int(y) // 5, int(radius) // 5):
-            return True
-    return False
-
-
 class SelectionEditor:
     def __init__(self):
         self.image_path = None
@@ -115,33 +106,37 @@ class SelectionEditor:
         def func():
             self.add_drawn_item()
             fig_type, id_tag, radius, x, y = self.drawing_tools.created_object_specs
-            self.find_circles_with_radius(radius)
+            self.find_circles_with_radius(radius, (x, y))
+            self.selection_canvas.delete(id_tag)
+            self.markup_canvas.delete(id_tag)
             self.start_circle_area_selection_with_detect()
 
         self.drawing_tools.func_to_call = func
         self.drawing_tools.draw_circle()
 
-    def find_circles_with_radius(self, radius):
+    def find_circles_with_radius(self, radius, original_center):
         method = dialogs.ask_detect_method(
             ["DistanceTransform", "Filter2D", "HoughCircles"])
         circles = list()
+        radius /= self.image_proportion
+        x, y = original_center
+        x, y = (x - self.highlightthickness) / self.image_proportion, (
+                    y - self.highlightthickness) / self.image_proportion
+
         if method == "DistanceTransform":
             circles = detecting_circles.find_circles_with_radius_distance(
-                self.image_path,
-                radius / self.image_proportion)
+                self.image_path, radius, (x, y))
         elif method == "Filter2D":
             circles = detecting_circles.find_circles_with_radius_filter2d(
-                self.image_path,
-                radius / self.image_proportion)
+                self.image_path, radius, (x, y))
         elif method == "HoughCircles":
             circles = detecting_circles.find_circles_with_radius_hough(
-                self.image_path,
-                radius / self.image_proportion)
+                self.image_path, radius, (x, y))
+
         dash = (self.config["dash"]["dash"], self.config["dash"]["space"])
         outline = self.config["circle_outline"]
-        # outline = '#' + hex(random.randint(273, 4095))[2:]
-
         width = self.config["line_width"]
+
         for x_img, y_img, radius_img in circles:
             item = self.drawing_tools.get_id_tag()
             radius = radius_img * self.image_proportion
@@ -149,9 +144,42 @@ class SelectionEditor:
             y = y_img * self.image_proportion
             x += self.highlightthickness
             y += self.highlightthickness
-            if check_circle_on_canvas(self.objects_manager.created_items, x, y,
-                                      radius):
-                continue
+            self.selection_canvas.create_oval(x + radius, y + radius,
+                                              x - radius, y - radius,
+                                              dash=dash, fill='',
+                                              tags=("draggable", item),
+                                              outline=outline, width=width)
+            self.markup_canvas.create_oval(x + radius, y + radius,
+                                           x - radius, y - radius,
+                                           dash=dash, fill='',
+                                           tags=("draggable", item),
+                                           outline=outline, width=width)
+            self.drawing_tools.created_object_specs = (
+                "circle", item, radius, x, y)
+            self.add_drawn_item()
+
+    def detect_all_circles(self):
+        method = dialogs.ask_detect_method(
+            ["DistanceTransform", "HoughCircles"])
+        circles = list()
+        if method == "DistanceTransform":
+            circles = detecting_circles.find_circles_with_radius_distance(
+                self.image_path)
+        elif method == "HoughCircles":
+            circles = detecting_circles.find_circles_with_radius_hough(
+                self.image_path)
+
+        dash = (self.config["dash"]["dash"], self.config["dash"]["space"])
+        outline = self.config["circle_outline"]
+        width = self.config["line_width"]
+
+        for x_img, y_img, radius_img in circles:
+            item = self.drawing_tools.get_id_tag()
+            radius = radius_img * self.image_proportion
+            x = x_img * self.image_proportion
+            y = y_img * self.image_proportion
+            x += self.highlightthickness
+            y += self.highlightthickness
             self.selection_canvas.create_oval(x + radius, y + radius,
                                               x - radius, y - radius,
                                               dash=dash, fill='',
@@ -227,11 +255,12 @@ class SelectionEditor:
         length, self.unit_type = dialogs.ask_unit_len()
         # length_dialog = simpledialog.askinteger(title="Input unit length",
         #                                                          prompt="length:")
-        if length is None:
+        if length == None:
             self.selection_canvas.delete(self.drawing_tools.unit_line_tag)
             self.markup_canvas.delete(self.drawing_tools.unit_line_tag)
             self.drawing_tools.unit_line_tag = None
             return
+
         self.pixel_proportion = length / unit_len
 
     def move_selection(self):
@@ -376,7 +405,7 @@ class SelectionEditor:
             _, mx, _, mxloc = cv2.minMaxLoc(dist[y:y + h, x:x + w],
                                             peaks8u[y:y + h, x:x + w])
             radius = int(mx)
-            if (radius < 10):
+            if radius < 10:
                 continue
 
             item = self.selection_canvas.create_oval(

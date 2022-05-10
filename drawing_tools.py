@@ -181,7 +181,7 @@ class DrawingTools:
                                           outline=outline)
 
         x_a1, y_a1, x_a2, y_a2 = self.first_axle
-        x_b1, y_b1, x_b2, y_b2 = self.first_axle
+        x_b1, y_b1, x_b2, y_b2 = self.second_axle
         self.created_object_specs = ("ellipse", item,
                                      math.hypot(x_a1 - x_a2, y_a1 - y_a2) / 2,
                                      math.hypot(x_b1 - x_b2, y_b1 - y_b2) / 2)
