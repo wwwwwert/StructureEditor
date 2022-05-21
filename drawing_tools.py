@@ -579,8 +579,11 @@ class DrawingTools:
         if self.selection_canvas is None:
             return
         self.selection_canvas.unbind("<ButtonPress-1>")
+        self.selection_canvas.tag_unbind("draggable", "<ButtonPress-1>")
+        self.selection_canvas.tag_unbind("draggable", "<Button1-Motion>")
         self.selection_canvas.unbind("<Button-1>")
         self.selection_canvas.unbind("<B1-Motion>")
+        self.selection_canvas.unbind("<Button1-Motion>")
         self.selection_canvas.unbind("<B1-ButtonRelease>")
         self.selection_canvas.unbind("<ButtonRelease-1>")
 
