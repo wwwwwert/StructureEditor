@@ -204,19 +204,24 @@ def find_circles_with_radius_hough(path, radius=0, original_center=None):
         mb.showwarning("Warning", "Original image was removed")
         return
 
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img_gray = cv2.medianBlur(img_gray, 5)
+    resize_scale = 0.5
 
-    circles = None
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.resize(gray, (0, 0), gray, resize_scale, resize_scale,
+                      cv2.INTER_AREA)
+    gray = cv2.medianBlur(gray, 5)
+
     if radius != 0:
-        circles = cv2.HoughCircles(img_gray, cv2.HOUGH_GRADIENT, 2,
-                                   radius * 1.75,
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 2,
+                                   radius * resize_scale * 1.75,
                                    param1=50, param2=30,
-                                   minRadius=int(radius * 0.9),
-                                   maxRadius=int(radius * 1.1))
+                                   minRadius=int(radius * resize_scale * 0.9),
+                                   maxRadius=int(radius * resize_scale * 1.1))
+
     else:
-        circles = cv2.HoughCircles(img_gray, cv2.HOUGH_GRADIENT, 2,
-                                   50, param1=100, param2=50, minRadius=10)
+        circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT_ALT, 1.5,
+                                   20, param1=1, param2=0.4, minRadius=10, maxRadius=30)
+
         # 120 30
         # 120 35
         # 120 40
@@ -236,11 +241,14 @@ def find_circles_with_radius_hough(path, radius=0, original_center=None):
 
     if radius != 0:
         x, y = original_center
-        borders.append((x - radius / 2, y - radius / 2, radius, radius))
+        borders.append(((x - radius / 2) * resize_scale,
+                        (y - radius / 2) * resize_scale, radius * resize_scale,
+                        radius * resize_scale))
 
-    # borders = nms(borders, 1)
+    borders = nms(borders, 1)
 
     for x, y, r1, r2 in borders:
-        res.append((x + r1 / 2, y + r1 / 2, r1))
+        res.append(((x + r1 / 2) / resize_scale, (y + r1 / 2) / resize_scale,
+                    r1 / resize_scale))
 
     return res
