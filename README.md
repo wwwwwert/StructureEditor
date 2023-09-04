@@ -69,7 +69,7 @@ I've faced false-trojan warnings on Windows system. I managed to solve it with [
 
 On MacOS make sure you [disabled GateKeeper](https://osxdaily.com/2015/05/04/disable-gatekeeper-command-line-mac-osx/) to allow programms from unverified developers to run created application.
 
-**Licence and Registration**
+# Licence and Registration
 Program is registered with the Federal Service
 on Intellectual Property
 [Registration form RU 2022663303](https://new.fips.ru/registers-doc-view/fips_servlet?DB=EVM&DocNumber=2022663303&TypeFile=html)
