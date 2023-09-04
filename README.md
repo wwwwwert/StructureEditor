@@ -68,3 +68,8 @@ Use [PyInstaller](https://pyinstaller.org/en/stable/) to create an executable fr
 I've faced false-trojan warnings on Windows system. I managed to solve it with [this answer](https://stackoverflow.com/a/52054580/17790933) and [this step-by-step manual](https://python.plainenglish.io/pyinstaller-exe-false-positive-trojan-virus-resolved-b33842bd3184). Also, make sure that you have all Python [dependencies](https://wiki.python.org/moin/WindowsCompilers) installed. 
 
 On MacOS make sure you [disabled GateKeeper](https://osxdaily.com/2015/05/04/disable-gatekeeper-command-line-mac-osx/) to allow programms from unverified developers to run created application.
+
+**Licence and Registration**
+Program is registered with the Federal Service
+on Intellectual Property
+[Registration form RU 2022663303](https://new.fips.ru/registers-doc-view/fips_servlet?DB=EVM&DocNumber=2022663303&TypeFile=html)
