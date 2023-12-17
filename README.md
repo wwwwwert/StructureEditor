@@ -60,7 +60,7 @@ You can export histogram in *.png *.bmp *.jpg *.jpeg fromats.
 
 
 # Creating .exe / .app files
-Use [PyInstaller](https://pyinstaller.org/en/stable/) to create an executable from Python project.
+Use [PyInstaller](https://pyinstaller.org/en/stable/) to create an executable from Python project. Example [manual](https://api.arcade.academy/en/latest/tutorials/bundling_with_pyinstaller/index.html).
 
 
 **Notes**
