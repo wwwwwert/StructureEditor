@@ -1,4 +1,5 @@
 import os
+import sys
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter.ttk import Notebook
@@ -16,7 +17,7 @@ class MicrostructurePhotoEditor:
     def __init__(self):
         self.root = Tk()
         # self.root.attributes('-fullscreen', True)
-        self.root.state('zoomed')
+        # self.root.state('zoomed')
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()
 

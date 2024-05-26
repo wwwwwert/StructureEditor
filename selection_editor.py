@@ -44,13 +44,13 @@ class SelectionEditor:
             size = int((self.screen_width - 60) / 2)
             self.image = self.image.resize(
                 (size, int(og_height / og_width * size)),
-                Image.ANTIALIAS)
+                Image.LANCZOS)
             self.image_proportion = size / og_width
         else:
             size = int(self.screen_height - 70)
             self.image = self.image.resize(
                 (int(og_width / og_height * size), size),
-                Image.ANTIALIAS)
+                Image.LANCZOS)
             self.image_proportion = size / og_height
 
         image_tk = ImageTk.PhotoImage(self.image)
