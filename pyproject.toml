@@ -1,0 +1,40 @@
+[project]
+name = "structure-editor"
+version = "2.0.0"
+description = "Program for microstructure photographs analysis and particles dimensions evaluation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PyQt6>=6.6,<6.10",
+    "numpy>=1.26",
+    "opencv-python-headless>=4.8",
+    "pandas>=2.1",
+    "shapely>=2.0",
+    "plotly>=5.18",
+    "kaleido>=0.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-qt>=4.4",
+]
+
+[project.scripts]
+structure-editor = "structure_editor.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["structure_editor"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"structure_editor/resources" = "structure_editor/resources"
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

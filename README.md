@@ -1,97 +1,122 @@
-
 # Structure Editor
 **Program for microstructure photographs analysis and particles dimensions evaluation**
 
-# Usage
+Desktop application (PyQt6) for marking up structures on microstructure photos,
+measuring their sizes using a unit line, and building size-distribution
+histograms.
 
-1. Run structure_editor.py
-2. Open structure image
-3. Create markup
-4. Build and export histogram
+## Requirements
 
-# Interface
+- Python 3.11+ (managed automatically by [uv](https://docs.astral.sh/uv/))
+- System Qt/OpenGL runtime libraries (`libegl1` and friends on Linux)
 
-Program has classic window with all tools in Top Menu. 
-
-Use "File" -> "Open" to select structure image. Only one image can be opened at a time.
-
-Markup Tools are available at "Selection" -> "Create Selection" section.
-
-After creating markup you can edit it with tools from "Selection" -> "Edit Selection" section.
-
-When markup is done and unit line is selected use "Statistics" -> "Build Graph and Table" to create histogram and table with structures discription.
-
-Use "Statistics" -> "Save graph" to export histogram in *.png *.bmp *.jpg *.jpeg formats.
-
-Use "Statistics" -> "Save table" to export table in *.png *.csv formats.
-
-You can navigate between pages by selecting tab on the top.  
-
-# Markup tools
-
-1. "Circle selection". <br> Use this tool to select circle shaped structures like spheres. Press at structure's center and drag the circle to the border. 
-
-2. "Circle selection with outodetection". <br> Use this tool to select one circle and program will detect all circles with +-15% radius.
-
-3. "Select all circles". <br> This tool selects circles of all radii. For this option it is better to use the "Distance transform" method.
-
-4. "Ellipse selection". <br> Use this tool to select ellipse shaped structures. Press and drag the first axis from begin to end. Press and drag the second axis, it will be drawn perpendicular in the middle automatically.
-
-5. "Polyhedron selection". <br> Use this tool to select polyhedron shaped structures. Create edges by press and drag from one vertex to other. When you when you bring the end to an already existing vertex, it is automatically connected. <br> When you are done click "Finish" botton on the top. Select bounding figure and draw it. Parameters of drawn bounding figure will be used in table. 
-
-6. "Amorphous selection". <br> Use this tool to select amorphous structures. Use cursor to draw a bounder by hand. Than select bounding figure or choose option to use area of hand-drawn figure. 
-
-7. "Select unit line". <br> Use this tool to select unit line. Press and drag to drow line above unit line. Than enter its length and scale (you can type in whatever you want).
-
-# Automatic marking
-
-* "Distance Transform" is used to detect touching and overlapping circles in flat pictures. Algorithm uses [distanceTransform OpenCV method](https://docs.opencv.org/4.x/d2/dbd/tutorial_distance_transform.html). More explanation is available in [this question](https://stackoverflow.com/questions/26932891/detect-touching-overlapping-circles-ellipses-with-opencv-and-python).
-
-* "Filter2d" is used for non-flat (spherical) structures in noisy pictures with shadows. It uses [FIlter2D OpenCV method](https://docs.opencv.org/3.4/d4/dbd/tutorial_filter_2d.html) to convert image and match it with sample. Note: you might try use other kernel matrix and circle sample radius to apply it in your scenes. More explanation is available in [this question](https://stackoverflow.com/questions/71903330/opencv-houghcircles-parameters-for-detecting-circles-microstructure-spheres).
-
-* "HoughCircles" is used with simple scenes. It uses [HoughCircle OpenCV transform](https://docs.opencv.org/3.4/d4/d70/tutorial_hough_circle.html). 
-
-# Histogram
-Histogram is creating with [seaborn.displot](https://seaborn.pydata.org/generated/seaborn.displot.html)
-
-Data that is used for it is presented in the Table. 
-
-You can export histogram in *.png *.bmp *.jpg *.jpeg fromats.
-
-
-# Creating .exe / .app files
-Use [PyInstaller](https://pyinstaller.org/en/stable/) to create an executable from Python project. Example [manual](https://api.arcade.academy/en/latest/tutorials/bundling_with_pyinstaller/index.html).
-
-
-**Notes**
-
-I've faced false-trojan warnings on Windows system. I managed to solve it with [this answer](https://stackoverflow.com/a/52054580/17790933) and [this step-by-step manual](https://python.plainenglish.io/pyinstaller-exe-false-positive-trojan-virus-resolved-b33842bd3184). Also, make sure that you have all Python [dependencies](https://wiki.python.org/moin/WindowsCompilers) installed. 
+## Setup & run
 
 ```Shell
-# MacOS
-python3.8 -m PyInstaller \
-    --clean \
-    --onefile \
-    --windowed \
-    --add-data 'config.json:.' \
-    -i "icons/icns/icon5_1.icns" \
-    -n 'Structure Editor' \
-    structure_editor.py
-
-# Windows
-PyInstaller \
-    --clean \
-    --onefile \
-    --windowed \
-    --add-data 'config.json;.' \
-    -i 'icons\icns\icon5_1.icns' \
-    -n 'Structure Editor' \
-    'structure_editor.py'
+uv sync            # create venv and install dependencies
+uv run structure-editor
 ```
 
-On MacOS make sure you [disabled GateKeeper](https://osxdaily.com/2015/05/04/disable-gatekeeper-command-line-mac-osx/) to allow programms from unverified developers to run created application.
+## Tests
 
-# Licence and Registration
+```Shell
+uv sync --extra dev
+uv run pytest
+```
+
+GUI tests run on Qt's offscreen platform (`QT_QPA_PLATFORM=offscreen`,
+set automatically in `tests/conftest.py`).
+
+## Usage
+
+1. Run `uv run structure-editor`
+2. Open a structure image (File → Open)
+3. Create markup with the toolbar tools
+4. Select the unit line and enter its real length
+5. Build and export the histogram and the table (Statistics → Build graph and table)
+
+## Interface
+
+The main window has a toolbar with all markup tools, tabs for the image,
+the measurements table and the histogram, plus a status bar showing the
+current tool, object count and scale.
+
+Two synced canvases are shown side by side: the photo with markup and the
+pure markup layer.
+
+## Markup tools
+
+1. **Circle selection** — press at the structure's center and drag to its border.
+2. **Circle selection with auto-detection** — mark one circle and the program
+   detects all circles with ±15% radius (DistanceTransform / Filter2D / HoughCircles).
+3. **Select all circles** — detect circles of all radii at once.
+4. **Ellipse selection** — drag the first axis, then drag the second axis;
+   it is drawn perpendicular through the middle automatically.
+5. **Polyhedron selection** — draw edges from vertex to vertex (close points
+   snap to existing vertices). Press **Finish** (or Enter) and choose the
+   bounding figure (circle or ellipse); its parameters are used in the table.
+6. **Amorphous selection** — draw a boundary freehand, then either use the
+   hand-drawn area or bound it with a circle/ellipse.
+7. **Select unit line** — draw a line over the scale bar and enter its length
+   and units.
+
+## Project layout
+
+```
+structure_editor/
+├── app.py               # entry point (QApplication + QSS)
+├── core/                # UI-independent logic
+│   ├── config.py        # colors/sizes from resources/config.json
+│   ├── shapes.py        # Shape base class + Circle/Ellipse/PolygonShape/UnitLine
+│   ├── store.py         # ShapeStore — shape lifecycle
+│   ├── detection.py     # OpenCV circle detection (distance transform, Filter2D, Hough)
+│   └── statistics.py    # measurements table + plotly histogram
+├── ui/
+│   ├── main_window.py   # window, toolbar, menus, tabs
+│   ├── editor.py        # EditorController — one object for both canvases
+│   ├── canvas.py        # paired scenes/views (photo+markup, pure markup)
+│   ├── tools.py         # tool state machines (circle, ellipse, polyhedron, ...)
+│   ├── dialogs.py       # unit length / choice dialogs
+│   └── stats.py         # table & plot views with export
+└── resources/
+    ├── config.json
+    └── styles.qss       # dark theme
+tests/                   # pytest + pytest-qt (offscreen)
+```
+
+Each `Shape` owns mirror items in **both** scenes at once — drawing, moving and
+deleting a figure never requires duplicated per-canvas code. Adding a new tool
+means subclassing `Tool` and implementing a few mouse handlers.
+
+## Statistics & export
+
+The histogram is built with [plotly](https://plotly.com/python/) and can be
+exported as:
+
+- **PNG** (via kaleido) — from the Plot tab or Statistics → Save graph
+- **interactive HTML** — from the Plot tab
+- **CSV** — from the Table tab or Statistics → Save table
+
+## Automatic marking methods
+
+* **DistanceTransform** — for touching/overlapping circles in flat pictures
+  ([OpenCV tutorial](https://docs.opencv.org/4.x/d2/dbd/tutorial_distance_transform.html)).
+* **Filter2D** — for non-flat (spherical) structures in noisy pictures with
+  shadows ([Filter2D tutorial](https://docs.opencv.org/3.4/d4/dbd/tutorial_filter_2d.html)).
+* **HoughCircles** — for simple scenes
+  ([Hough circle tutorial](https://docs.opencv.org/3.4/d4/d70/tutorial_hough_circle.html)).
+
+## Creating .exe / .app files
+
+Use [PyInstaller](https://pyinstaller.org/en/stable/):
+
+```Shell
+uv run pyinstaller --clean --onefile --windowed \
+    --add-data 'structure_editor/resources:structure_editor/resources' \
+    -n 'Structure Editor' -m structure_editor.app
+```
+
+## License and Registration
 Program is registered with the Federal Service
 on Intellectual Property
 [Registration form RU 2022663303](https://new.fips.ru/registers-doc-view/fips_servlet?DB=EVM&DocNumber=2022663303&TypeFile=html)
