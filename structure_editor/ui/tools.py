@@ -5,7 +5,7 @@ from typing import Callable, Optional
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QMouseEvent, QPen
-from PyQt6.QtWidgets import QGraphicsEllipseItem, QGraphicsLineItem
+from PyQt6.QtWidgets import QGraphicsEllipseItem, QGraphicsLineItem, QMessageBox
 
 from ..core import detection
 from ..core.shapes import (Circle, Ellipse, PolygonShape, TAG_ROLE, UnitLine,
@@ -142,7 +142,11 @@ class CircleDetectTool(CircleTool):
                                   self.editor.canvas)
         if method is None:
             return
-        self.editor.detect_circles_like(method, drawn.radius, drawn.center)
+        try:
+            self.editor.detect_circles_like(method, drawn.radius, drawn.center)
+        except detection.DetectionUnavailableError as exc:
+            QMessageBox.warning(self.editor.canvas, "Detection unavailable",
+                                str(exc))
 
 
 class EllipseTool(Tool):
@@ -537,7 +541,6 @@ class RemoveTool(Tool):
         if shape is None:
             return
         if isinstance(shape, UnitLine):
-            from PyQt6.QtWidgets import QMessageBox
             QMessageBox.warning(
                 self.editor.canvas, "Unit line",
                 'To create new unit line use "Select unit line" function')

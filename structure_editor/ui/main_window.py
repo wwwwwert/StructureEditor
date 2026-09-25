@@ -244,6 +244,9 @@ class MainWindow(QMainWindow):
             return
         try:
             count = self.editor.detect_all_circles(method)
+        except detection.DetectionUnavailableError as exc:
+            QMessageBox.warning(self, "Detection unavailable", str(exc))
+            return
         except detection.ImageReadError as exc:
             QMessageBox.warning(self, "Error", str(exc))
             return

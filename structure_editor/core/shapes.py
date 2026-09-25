@@ -181,7 +181,7 @@ class PolygonShape(Shape):
             self.items.extend(self.bound.items)
 
     def move_center_to(self, center: QPointF) -> None:
-        raise NotImplementedError("используйте move_by для полигонов")
+        raise NotImplementedError("use move_by for polygons")
 
     def _bound_size_row(self, pixel_proportion: float) -> tuple:
         row = self.bound.size_row(pixel_proportion)
@@ -191,7 +191,7 @@ class PolygonShape(Shape):
         if self.bound is not None:
             return self._bound_size_row(pixel_proportion)
         if self.KIND != "amorphous":
-            raise ValueError(f"{self.KIND} требует обрамляющей фигуры")
+            raise ValueError(f"{self.KIND} requires a bounding figure")
         area = polygon_area(self.points) * pixel_proportion ** 2
         return (self.KIND, None, None, round(area, 3))
 
@@ -225,10 +225,10 @@ class UnitLine(Shape):
         self._add_to_both(scenes, builder)
 
     def move_center_to(self, center: QPointF) -> None:
-        raise NotImplementedError("используйте move_by")
+        raise NotImplementedError("use move_by")
 
     def size_row(self, pixel_proportion: float) -> tuple:
-        raise ValueError("UnitLine не участвует в статистике")
+        raise ValueError("UnitLine is not part of the statistics")
 
 
 def polygon_area(points: list[QPointF]) -> float:

@@ -1,7 +1,25 @@
 from __future__ import annotations
 
-import cv2
 import numpy as np
+
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:  # opencv в optional-группе "detection"
+    cv2 = None
+    CV2_AVAILABLE = False
+
+INSTALL_HINT = ('Automatic detection requires OpenCV. Install it with:\n'
+                '    uv sync --extra detection')
+
+
+class DetectionUnavailableError(Exception):
+    """OpenCV is not installed (the "detection" extra)."""
+
+
+def _require_cv2() -> None:
+    if not CV2_AVAILABLE:
+        raise DetectionUnavailableError(INSTALL_HINT)
 
 
 class ImageReadError(Exception):
@@ -11,7 +29,7 @@ class ImageReadError(Exception):
 def _read(path: str) -> np.ndarray:
     image = cv2.imread(path)
     if image is None:
-        raise ImageReadError(f"Не удалось прочитать изображение: {path}")
+        raise ImageReadError(f"Cannot read image: {path}")
     return image
 
 
@@ -95,6 +113,7 @@ def find_circles_distance(path: str, radius: float = 0,
     radius == 0 — искать окружности всех радиусов, иначе — только
     с радиусом ±15% от заданного вокруг original_center.
     """
+    _require_cv2()
     im = _read(path)
     dist, peaks8u, contours = _distance_pipeline(im, radius)
 
@@ -121,6 +140,7 @@ def find_circles_filter2d(path: str, radius: float = 0,
                           original_center: tuple | None = None) -> list[tuple]:
     """Детекция неплоских (сферических) структур через Filter2D.
     Подходит для шумных снимков с тенями."""
+    _require_cv2()
     img = _read(path)
     resize_scale = 0.5
 
@@ -172,6 +192,7 @@ def find_circles_filter2d(path: str, radius: float = 0,
 def find_circles_hough(path: str, radius: float = 0,
                        original_center: tuple | None = None) -> list[tuple]:
     """Детекция окружностей через преобразование Хафа. Для простых сцен."""
+    _require_cv2()
     img = _read(path)
     resize_scale = 0.5
 

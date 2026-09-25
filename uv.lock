@@ -687,7 +687,6 @@ dependencies = [
     { name = "kaleido" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "opencv-python-headless" },
     { name = "pandas" },
     { name = "plotly" },
     { name = "pyqt6" },
@@ -695,6 +694,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+detection = [
+    { name = "opencv-python-headless" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-qt" },
@@ -704,7 +706,7 @@ dev = [
 requires-dist = [
     { name = "kaleido", specifier = ">=0.2.1" },
     { name = "numpy", specifier = ">=1.26" },
-    { name = "opencv-python-headless", specifier = ">=4.8" },
+    { name = "opencv-python-headless", marker = "extra == 'detection'", specifier = ">=4.8" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "plotly", specifier = ">=5.18" },
     { name = "pyqt6", specifier = ">=6.6,<6.10" },
@@ -712,7 +714,7 @@ requires-dist = [
     { name = "pytest-qt", marker = "extra == 'dev'", specifier = ">=4.4" },
     { name = "shapely", specifier = ">=2.0" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["detection", "dev"]
 
 [[package]]
 name = "typing-extensions"

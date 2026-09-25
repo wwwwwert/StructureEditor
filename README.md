@@ -13,7 +13,8 @@ histograms.
 ## Setup & run
 
 ```Shell
-uv sync            # create venv and install dependencies
+uv sync                              # minimal: manual markup, stats, export
+uv sync --extra detection            # + OpenCV-based automatic circle detection
 uv run structure-editor
 ```
 
@@ -105,6 +106,10 @@ exported as:
   shadows ([Filter2D tutorial](https://docs.opencv.org/3.4/d4/dbd/tutorial_filter_2d.html)).
 * **HoughCircles** — for simple scenes
   ([Hough circle tutorial](https://docs.opencv.org/3.4/d4/d70/tutorial_hough_circle.html)).
+
+Automatic detection lives in the optional `detection` dependency group
+(OpenCV). Without it all detection tools show a hint to run
+`uv sync --extra detection`; everything else works unchanged.
 
 ## Creating .exe / .app files
 
