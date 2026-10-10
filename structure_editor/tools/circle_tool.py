@@ -41,7 +41,7 @@ class CircleTool(SelectionTool):
         tag = self.controller.next_tag("shape")
         final = self.markup.add_oval(tag, self.center, radius, self._pen())
         if self._preview is not None:
-            self.scene.removeItem(self._preview)
+            self.controller.remove_item(self._preview)
             self._preview = None
         self.center = None
         final_radius = final.rect().width() / 2.0

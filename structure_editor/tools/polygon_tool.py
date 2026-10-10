@@ -113,7 +113,7 @@ class PolygonTool(SelectionTool):
         tag = self.controller.next_tag("shape")
         polygon.setData(0, tag)
         polygon.setData(1, "polygon")
-        self.scene.addItem(polygon)
+        self.controller.add_polygon_shape(polygon)
 
         area = self._polygon_area()
         # Keep the tool active for further polyhedra; cleanup happens elsewhere.

@@ -1,4 +1,11 @@
-"""Main window: menu, toolbar, tabs, and wiring of tools to the canvas."""
+"""Main window: menu, toolbar, splitter, tabs, and wiring of tools to the canvas.
+
+The editor page holds two synchronized views in a splitter:
+
+* the left **image view** composites the photograph with the markup,
+* the right **overlay view** shows only the markup on a neutral background and
+  can be shown or hidden with a toolbar toggle.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +18,8 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QLabel,
     QMainWindow,
-    QSizePolicy,
+    QSplitter,
+    QStyle,
     QTableView,
     QTabWidget,
     QToolBar,
@@ -30,9 +38,11 @@ from structure_editor.tools.circle_tool import CircleTool
 from structure_editor.tools.ellipse_tool import EllipseTool
 from structure_editor.tools.freehand_tool import FreehandTool
 from structure_editor.tools.polygon_tool import PolygonTool
+from structure_editor.tools.selection_tool import pen_from
 from structure_editor.tools.unit_line_tool import UnitLineTool
 
 _IMAGE_FILTER = "Images (*.png *.bmp *.jpg *.jpeg)"
+_DRAW_TOOLS = ("circle", "ellipse", "polygon", "freehand")
 
 
 class MainWindow(QMainWindow):
@@ -59,13 +69,15 @@ class MainWindow(QMainWindow):
         self.pixel_proportion: float = 0.0
         self._figure = None
 
-        # Tool registry.
-        self.view = None
+        # Views + tool registry.
+        self.view: CanvasView | None = None
+        self.overlay_view: CanvasView | None = None
         self._tools = {}
         self._active_tool = None
 
         self._build_ui()
         self._build_menus_and_toolbar()
+        self._apply_style()
         self._update_action_states()
 
     # ------------------------------------------------------------------ UI
@@ -77,15 +89,24 @@ class MainWindow(QMainWindow):
         lay = QVBoxLayout(self.editor_page)
         lay.setContentsMargins(0, 0, 0, 0)
 
-        # The view renders the controller's own scene, so all edits share it.
+        # Two synchronized views: photo+markup (left) and markup-only (right).
         self.view = CanvasView(self.controller.scene, active_tool=None)
-        self.view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.view.controller = self.controller
         self.controller.view = self.view
+
+        self.overlay_view = CanvasView(self.controller.overlay.scene, active_tool=None)
+        self.overlay_view.controller = self.controller
+        self.controller.overlay_view = self.overlay_view
+
+        self._splitter = QSplitter(Qt.Orientation.Horizontal, self.editor_page)
+        self._splitter.addWidget(self.view)
+        self._splitter.addWidget(self.overlay_view)
+        self._splitter.setSizes([int(self.width() * 0.6), int(self.width() * 0.4)])
+        self._splitter.setChildrenCollapsible(False)
+        lay.addWidget(self._splitter, 1)
 
         self.status_label = QLabel("Open an image to begin.")
         self.status_label.setContentsMargins(8, 4, 8, 4)
-
-        lay.addWidget(self.view, 1)
         lay.addWidget(self.status_label)
 
         self.table_page = QWidget()
@@ -106,16 +127,67 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.plot_page, "Plot")
         self.setCentralWidget(self.tabs)
 
+    def _apply_style(self) -> None:
+        """Apply a compact, modern QSS theme."""
+        self.setStyleSheet(
+            """
+            QMainWindow, QWidget { background: #1f2430; color: #e6e6e6; }
+            QToolBar { background: #282e3b; border: none; padding: 4px; spacing: 2px; }
+            QToolBar QToolButton {
+                background: transparent; border: none; border-radius: 6px;
+                padding: 5px 8px; color: #d7dae0;
+            }
+            QToolBar QToolButton:hover { background: #37415a; }
+            QToolBar QToolButton:pressed { background: #43507a; }
+            QToolBar QToolButton:checked { background: #3d6bd0; color: #ffffff; }
+            QSplitter::handle { background: #2c3340; width: 2px; }
+            QTabWidget::pane { border: 1px solid #2c3340; }
+            QTabBar::tab {
+                background: #282e3b; color: #b9bec9; padding: 6px 14px;
+                border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px;
+            }
+            QTabBar::tab:selected { background: #3d6bd0; color: #ffffff; }
+            QMenuBar { background: #20242e; }
+            QMenuBar::item { padding: 5px 8px; }
+            QMenuBar::item:selected { background: #3d6bd0; }
+            QMenu { background: #282e3b; border: 1px solid #2c3340; padding: 4px; }
+            QMenu::item { padding: 5px 24px; }
+            QMenu::item:selected { background: #3d6bd0; }
+            QStatusBar, QLabel { color: #b9bec9; }
+            QTableView {
+                background: #1f2430; alternate-background-color: #232936;
+                gridline-color: #2c3340; selection-background-color: #3d6bd0;
+            }
+            QHeaderView::section {
+                background: #282e3b; color: #e6e6e6; border: none; padding: 5px;
+            }
+            """
+        )
+
     def _build_menus_and_toolbar(self) -> None:
-        # ---- File ----
+        self._build_file_menu()
+        self._build_selection_menu()
+        self._build_stats_menu()
+        self._build_toolbar()
+
+    # ------------------------------------------------------------- menus
+    def _build_file_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
-        self.act_open = QAction("Open image...", self)
+        self.act_open = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton),
+            "Open image...",
+            self,
+        )
         self.act_open.setShortcut(QKeySequence.StandardKey.Open)
         self.act_open.triggered.connect(self.open_image)
         file_menu.addAction(self.act_open)
 
         file_menu.addSeparator()
-        self.act_export = QAction("Export markup as PNG", self)
+        self.act_export = QAction(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
+            "Export markup as PNG",
+            self,
+        )
         self.act_export.triggered.connect(self.export_markup)
         file_menu.addAction(self.act_export)
 
@@ -124,39 +196,49 @@ class MainWindow(QMainWindow):
         act_quit.triggered.connect(self.close)
         file_menu.addAction(act_quit)
 
-        # ---- Selection ----
+    def _build_selection_menu(self) -> None:
         selection_menu = self.menuBar().addMenu("&Selection")
-        self.act_circle = QAction("Circle selection", self, checkable=True, checked=False)
+
+        self.act_circle = QAction("Circle selection", self, checkable=True)
         self.act_circle.triggered.connect(lambda: self._activate("circle"))
         selection_menu.addAction(self.act_circle)
 
-        self.act_ellipse = QAction("Ellipse selection", self, checkable=True, checked=False)
+        self.act_ellipse = QAction("Ellipse selection", self, checkable=True)
         self.act_ellipse.triggered.connect(lambda: self._activate("ellipse"))
         selection_menu.addAction(self.act_ellipse)
 
-        self.act_polygon = QAction("Polyhedron selection", self, checkable=True, checked=False)
+        self.act_polygon = QAction("Polyhedron selection", self, checkable=True)
         self.act_polygon.triggered.connect(lambda: self._activate("polygon"))
         selection_menu.addAction(self.act_polygon)
 
-        self.act_freehand = QAction("Amorphous selection", self, checkable=True, checked=False)
+        self.act_freehand = QAction("Amorphous selection", self, checkable=True)
         self.act_freehand.triggered.connect(lambda: self._activate("freehand"))
         selection_menu.addAction(self.act_freehand)
 
-        self.act_detect = QAction("Circle auto-detection", self, checkable=True, checked=False)
+        self.act_detect = QAction("Circle auto-detection", self, checkable=True)
         self.act_detect.triggered.connect(self.auto_detect_circles)
         selection_menu.addAction(self.act_detect)
 
         selection_menu.addSeparator()
-        self.act_unit_line = QAction("Select unit line", self, checkable=True, checked=False)
+        self.act_unit_line = QAction("Select unit line", self, checkable=True)
         self.act_unit_line.triggered.connect(self.select_unit_line)
         selection_menu.addAction(self.act_unit_line)
 
         edit_menu = selection_menu.addMenu("Edit selection")
+        self.act_move = QAction("Move/select markup", self, checkable=True)
+        self.act_move.triggered.connect(self.activate_move)
+        edit_menu.addAction(self.act_move)
+
+        self.act_delete_selected = QAction("Delete selected", self)
+        self.act_delete_selected.setShortcut(QKeySequence.StandardKey.Delete)
+        self.act_delete_selected.triggered.connect(self.delete_selected)
+        edit_menu.addAction(self.act_delete_selected)
+
         self.act_remove_all = QAction("Remove all", self)
         self.act_remove_all.triggered.connect(self.remove_all_selection)
         edit_menu.addAction(self.act_remove_all)
 
-        # ---- Statistics ----
+    def _build_stats_menu(self) -> None:
         stats_menu = self.menuBar().addMenu("&Statistics")
         self.act_build = QAction("Build graph & table", self)
         self.act_build.triggered.connect(self.build_graph_and_table)
@@ -170,23 +252,59 @@ class MainWindow(QMainWindow):
         self.act_save_table.triggered.connect(self.save_table)
         stats_menu.addAction(self.act_save_table)
 
-        # ---- Toolbar ----
+        stats_menu.addSeparator()
+        self.act_toggle_overlay = QAction("Show markup-only view", self, checkable=True)
+        self.act_toggle_overlay.setChecked(True)
+        self.act_toggle_overlay.triggered.connect(self.toggle_overlay_view)
+        stats_menu.addAction(self.act_toggle_overlay)
+
+    # ---------------------------------------------------------- toolbar
+    def _build_toolbar(self) -> None:
+        from structure_editor import icons
+
         toolbar = QToolBar("Tools", self)
         toolbar.setMovable(False)
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(toolbar)
+
+        # File
         toolbar.addAction(self.act_open)
         toolbar.addSeparator()
-        toolbar.addAction(self.act_circle)
-        toolbar.addAction(self.act_ellipse)
-        toolbar.addAction(self.act_polygon)
-        toolbar.addAction(self.act_freehand)
-        toolbar.addAction(self.act_detect)
-        toolbar.addSeparator()
+
+        # Measurement / calibration
+        self.act_unit_line.setIcon(icons.make("unit_line"))
+        self.act_unit_line.setToolTip("Calibrate pixels to a known physical length")
         toolbar.addAction(self.act_unit_line)
         toolbar.addSeparator()
+
+        # Drawing tools
+        for name, act in (
+            ("circle", self.act_circle),
+            ("ellipse", self.act_ellipse),
+            ("polygon", self.act_polygon),
+            ("freehand", self.act_freehand),
+            ("detect", self.act_detect),
+        ):
+            act.setIcon(icons.make(name))
+            toolbar.addAction(act)
+        toolbar.addSeparator()
+
+        # Edit actions
+        self.act_move.setIcon(icons.make("move"))
+        self.act_move.setToolTip("Drag shapes around or click to select them")
+        toolbar.addAction(self.act_move)
+
+        self.act_delete_selected.setIcon(icons.make("delete"))
+        toolbar.addAction(self.act_delete_selected)
+
+        self.act_remove_all.setIcon(icons.make("remove_all"))
+        toolbar.addAction(self.act_remove_all)
+        toolbar.addSeparator()
+
+        self.act_build.setIcon(icons.make("graph"))
         toolbar.addAction(self.act_build)
 
-    # ----------------------------------------------------------- tools
+    # ------------------------------------------------------------- tools
     def _make_tool(self, name: str):
         factory = {
             "circle": CircleTool,
@@ -200,13 +318,15 @@ class MainWindow(QMainWindow):
         return tool
 
     def _activate(self, name: str) -> None:
-        if self.view.scene().items().__len__() == 0 and not self.document_name:
+        if not self.document_name:
             dialogs.warn(self, "Open an image first.")
-            self._uncheck_actions(["circle", "ellipse", "polygon", "freehand"])
+            self._uncheck_actions(_DRAW_TOOLS)
             return
         for key, act in self._selection_actions().items():
             if key != name:
                 act.setChecked(False)
+        self.act_move.setChecked(False)
+        self.act_unit_line.setChecked(False)
         self._run_tool(name)
 
     def _selection_actions(self):
@@ -238,6 +358,42 @@ class MainWindow(QMainWindow):
             return
         self.manager.add(kind, specs)
         self._update_action_states()
+
+    # ------------------------------------------------------- edit actions
+    def activate_move(self) -> None:
+        """Enter move/select mode: no tool intercepts pointer events, so
+        movable markup items can be dragged and selected with the defaults."""
+        self.act_move.setChecked(True)
+        self._uncheck_actions(_DRAW_TOOLS)
+        self.act_unit_line.setChecked(False)
+        self.view.set_active_tool(None)
+
+    def delete_selected(self) -> None:
+        """Remove every currently selected shape from the model and canvas."""
+        removed = False
+        for item in list(self.controller.image.scene.selectedItems()):
+            tag = item.data(0)
+            if not tag:
+                continue
+            self.manager.remove(tag)
+            self.controller.remove_item(item)
+            self.controller.remove_by_tag(tag)
+            removed = True
+        if removed:
+            self._update_action_states()
+
+    def remove_all_selection(self) -> None:
+        if not self.manager.count:
+            return
+        if not dialogs.confirm(self, "Clear all markup?", "Remove all selection"):
+            return
+        self.manager.clear()
+        self.controller.clear_markup()
+        self._update_action_states()
+
+    def toggle_overlay_view(self) -> None:
+        """Show or hide the markup-only view in the editor splitter."""
+        self.overlay_view.setVisible(self.act_toggle_overlay.isChecked())
 
     # ----------------------------------------------------------- actions
     def open_image(self) -> None:
@@ -276,16 +432,9 @@ class MainWindow(QMainWindow):
             dialogs.warn(self, "Open an image first.")
             self.act_unit_line.setChecked(False)
             return
-        self._uncheck_actions(["circle", "ellipse", "polygon", "freehand"])
+        self._uncheck_actions(_DRAW_TOOLS)
+        self.act_move.setChecked(False)
         self._run_tool("unit_line")
-
-    def remove_all_selection(self) -> None:
-        if not self.manager.count:
-            return
-        if not dialogs.confirm(self, "Clear all markup?", "Remove all selection"):
-            return
-        self.manager.clear()
-        self.controller.clear_markup()
 
     def auto_detect_circles(self) -> None:
         self.act_detect.setChecked(False)
@@ -298,22 +447,17 @@ class MainWindow(QMainWindow):
         method = dialogs.ask_detect_method()
         if method is None:
             return
-        # Simple guarded detection; results are drawn as circles.
         try:
             circles = auto_detect.find_circles_distance_transform(self.document_name)
         except Exception as exc:  # pragma: no cover
             dialogs.warn(self, str(exc), "Detection failed")
             return
+        pen = pen_from(self.config.render_color(), self.config.line_width())
         for x, y, r in circles:
-            item = self.controller.markup.add_oval(
-                self.controller.next_tag("shape"), QPointF(x, y), r, self._default_pen()
-            )
-            self.manager.add("circle", ("circle", item.data(0), r, x, y))
-
-    def _default_pen(self):
-        from structure_editor.tools.selection_tool import pen_from
-
-        return pen_from(self.config.render_color(), self.config.line_width())
+            tag = self.controller.next_tag("shape")
+            self.controller.add_oval(tag, QPointF(x, y), r, pen)
+            self.manager.add("circle", ("circle", tag, r, x, y))
+        self._update_action_states()
 
     # ------------------------------------------------------- statistics
     def build_graph_and_table(self) -> None:
@@ -369,7 +513,6 @@ class MainWindow(QMainWindow):
         finally:
             os.remove(tmp)
 
-        # Swap the placeholder for the rendered image, keeping alignment.
         layout = self.plot_page.layout()
         if self.plot_placeholder is not None:
             layout.removeWidget(self.plot_placeholder)
@@ -423,7 +566,10 @@ class MainWindow(QMainWindow):
             self.act_freehand,
             self.act_detect,
             self.act_unit_line,
-            self.act_build,
+            self.act_move,
+            self.act_delete_selected,
+            self.act_remove_all,
         ):
             act.setEnabled(has_image)
+        self.act_build.setEnabled(has_image)
         self.act_export.setEnabled(has_image)

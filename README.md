@@ -50,8 +50,14 @@ uv run structure-editor     # or: uv run python -m structure_editor
 
 ## Usage
 
-1. **File → Open image** to load a structure photograph.
-2. Pick a markup tool from the toolbar/menu and draw over structures.
+1. **File → Open image** to load a structure photograph. The editor shows two
+   synchronized views: the photograph with markup on the left, and a
+   markup-only view on the right (toggle it via **Statistics → Show markup-only
+   view**).
+2. Draw over structures with the toolbar: **calibration** (unit line), then the
+   **drawing tools** (circle, ellipse, polyhedron, amorphous, auto-detection).
+   Use the **edit** group to move/select shapes, delete a selected shape, or
+   remove all markup.
 3. **Selection → Select unit line**, then draw a line and enter its real length
    and unit.
 4. **Statistics → Build graph & table** to see the histogram and the table.
@@ -66,17 +72,20 @@ structure_editor/
   main_window.py         # menu, toolbar, tabs; wires tools to the canvas
   config.py              # config.json + DPI proportion scaling
   dialogs.py             # modal dialogs (length/units, bounding figure, ...)
-  theme/style.qss        # dark stylesheet
+  icons.py               # runtime Material-style line icons (no assets)
   model/                 # shapes (inheritance) + objects manager
-  canvas/                # scene, view, controller (one object for both layers)
+  canvas/                # scenes, views, controller (one object for both layers)
   tools/                 # interactive selection tools + auto-detection
   analysis/              # plotly histogram, table, exporters
 tests/                   # pytest + pytest-qt (headless)
 ```
 
-The canvas is a single `QGraphicsScene` with an image layer underneath a markup
-layer. `CanvasController` is the one object that manipulates both, so they can
-never drift apart; each selection is a typed `BaseShape` subclass.
+`CanvasController` is the one object that manipulates **two** `QGraphicsScene`
+objects at once: the **image** scene (photograph + markup) and the **overlay**
+scene (markup only). Every drawing command is routed through the controller,
+which mirrors each shape onto both scenes and keeps them aligned when shapes are
+moved, so the two views can never drift apart; each selection is a typed
+`BaseShape` subclass. Icons are drawn at startup (no external theme required).
 
 ## Tests
 

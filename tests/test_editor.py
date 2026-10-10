@@ -134,8 +134,43 @@ def test_build_statistics_and_export_table(window, tmp_path, monkeypatch):
     assert os.path.exists(img_out)
 
 
+def test_overlay_scene_mirrors_shape(window):
+    """A drawn shape appears on both the image scene and the markup-only one."""
+    _prepare_view_mapping(window)
+    _select_circle(window, cx=100, cy=100, radius=40)
+    assert window.manager.count == 1
+    image_shapes = [it for it in window.controller.image.scene.items() if it.data(1) == "shape"]
+    overlay_shapes = [it for it in window.controller.overlay.scene.items() if it.data(1) == "shape"]
+    assert len(image_shapes) == 1
+    assert len(overlay_shapes) == 1
+    # The overlay copy carries the same tag as the image copy.
+    assert image_shapes[0].data(0) == overlay_shapes[0].data(0)
+
+
+def test_toggle_hides_overlay_view(window):
+    """The overlay toggle action shows and hides the markup-only view."""
+    window.act_toggle_overlay.setChecked(False)
+    window.toggle_overlay_view()
+    assert window.overlay_view.isHidden()
+    window.act_toggle_overlay.setChecked(True)
+    window.toggle_overlay_view()
+    assert not window.overlay_view.isHidden()
+
+
+def test_delete_selected_removes_shape(window):
+    """Deleting a selected shape drops it from both scenes and the model."""
+    _prepare_view_mapping(window)
+    _select_circle(window, cx=100, cy=100, radius=40)
+    assert window.manager.count == 1
+    item = next(it for it in window.controller.image.scene.items() if it.data(1) == "shape")
+    item.setSelected(True)
+    window.delete_selected()
+    assert window.manager.count == 0
+    remaining = [it for it in window.controller.image.scene.items() if it.data(1) == "shape"]
+    assert remaining == []
+
+
 def test_vision_detection_warns_when_missing(window, monkeypatch):
-    """If OpenCV is missing, auto-detection warns instead of crashing."""
     import structure_editor.tools.auto_detect as ad
 
     monkeypatch.setattr(ad, "is_available", lambda: False)

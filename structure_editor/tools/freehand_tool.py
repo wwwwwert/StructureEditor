@@ -48,6 +48,7 @@ class FreehandTool(SelectionTool):
         tag = self.controller.next_tag("shape")
         self._path_item.setData(1, "amorphous_region")
         self._path_item.setData(0, tag)
+        self.controller.mirror_to_overlay(self._path_item)
         self.submit("amorphous", ("amorphous", tag, None, abs(area), 0.0))
         self._points = []
         self._path_item = None

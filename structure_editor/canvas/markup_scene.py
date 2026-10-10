@@ -17,7 +17,8 @@ class MarkupScene:
     above it. The overlay can be exported alone by hiding the image layer.
     """
 
-    def __init__(self, scene) -> None:
+    def __init__(self, name: str, scene) -> None:
+        self.name = name
         # ``scene`` is a QGraphicsScene the controller owns; kept here so the
         # controller and the tools share the exact same reference.
         self._scene = scene
@@ -36,6 +37,14 @@ class MarkupScene:
         self.background_item = self._scene.addPixmap(pixmap)
         self.background_item.setZValue(-1000)
         self._scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+
+    def set_background_plain(self, width: int, height: int) -> None:
+        """Give the overlay scene a neutral background with no photograph."""
+        self.clear_markup()
+        if self.background_item is not None:
+            self._scene.removeItem(self.background_item)
+            self.background_item = None
+        self._scene.setSceneRect(0, 0, width, height)
 
     def clear_markup(self) -> None:
         """Remove every markup item while keeping the background image."""

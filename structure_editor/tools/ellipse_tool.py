@@ -72,7 +72,7 @@ class EllipseTool(SelectionTool):
     def _draw_axis_line(self, axis):
         if self._axes:
             old = self._axes.pop(0)
-            self.scene.removeItem(old)
+            self.controller.remove_item(old)
             self._axes = []
         x1, y1, x2, y2 = axis
         pen = pen_from(self.config.colors.get("axle_color", "#e6c229"), self.config.line_width())
@@ -82,7 +82,7 @@ class EllipseTool(SelectionTool):
     def _finish(self) -> None:
         # Clean up temporary axis guides.
         for item in self._axes:
-            self.scene.removeItem(item)
+            self.controller.remove_item(item)
         self._axes = []
 
         x1, y1, x2, y2 = self.first_axis

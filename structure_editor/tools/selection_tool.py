@@ -24,8 +24,10 @@ class SelectionTool:
 
     def __init__(self, controller: CanvasController) -> None:
         self.controller = controller
+        # The image scene hosts transient guides and previews; finished tagged
+        # shapes are drawn through ``controller`` so both canvases stay in sync.
         self.scene = controller.scene
-        self.markup = controller.markup
+        self.markup = controller
         self.config = controller.config
         self._on_finished: Callable[[str, tuple], None] | None = None
 

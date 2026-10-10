@@ -26,6 +26,7 @@ class CanvasView(QGraphicsView):
         self.setTransformationAnchor(self.ViewportAnchor.AnchorViewCenter)
         self.setDragMode(self.DragMode.NoDrag)
         self.active_tool = active_tool
+        self.controller = None  # set by the main window when a controller exists
 
     def set_active_tool(self, tool) -> None:
         """Set the tool that receives pointer events (or ``None``)."""
@@ -48,5 +49,9 @@ class CanvasView(QGraphicsView):
     def mouseReleaseEvent(self, event) -> None:
         if self.active_tool is not None and event.button() == Qt.MouseButton.LeftButton:
             self.active_tool.on_release(event)
-        else:
-            super().mouseReleaseEvent(event)
+            return
+        super().mouseReleaseEvent(event)
+        # In move/pan mode a shape may have been dragged; keep the overlay copy
+        # of each shape aligned with the one on the image view.
+        if self.controller is not None:
+            self.controller.sync_peers()
