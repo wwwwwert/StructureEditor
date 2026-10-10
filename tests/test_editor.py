@@ -59,6 +59,27 @@ def _select_circle(window, cx=100, cy=100, radius=40) -> None:
     _release(p2, window)
 
 
+def _select_ellipse(window, cx=100, cy=100, major=40, minor=20) -> None:
+    """Drive the ellipse tool: major axis drag, then a perpendicular minor drag.
+
+    The first drag defines the major axis end-to-end; the second defines the
+    minor axis, so two press-drag-release pairs are needed to finish it.
+    """
+    window._run_tool("ellipse")
+    view = window.view
+    # First phase: major axis from (cx, cy) to (cx + major, cy).
+    p1 = _viewport(window, cx, cy)
+    p2 = _viewport(window, cx + major, cy)
+    _press(p1, window)
+    QTest.mouseMove(view.viewport(), p2)
+    _release(p2, window)
+    # Second phase: minor axis through the center, perpendicular to the major.
+    p3 = _viewport(window, cx, cy - minor)
+    _press(p2, window)
+    QTest.mouseMove(view.viewport(), p3)
+    _release(p3, window)
+
+
 # ----------------------------------------------------------------------
 def test_image_loads_into_canvas(window):
     """Opening a document places its pixmap as the scene background."""
@@ -75,6 +96,43 @@ def test_manual_circle_selection_creates_shape(window):
     before = window.manager.count
     _select_circle(window, cx=100, cy=100, radius=40)
     assert window.manager.count == before + 1
+
+
+def test_manual_ellipse_selection_creates_shape(window):
+    """The two-drag ellipse gesture adds a shape (regression for the second-phase
+    press crash)."""
+    _prepare_view_mapping(window)
+    before = window.manager.count
+    _select_ellipse(window, cx=100, cy=100, major=40, minor=20)
+    assert window.manager.count == before + 1
+
+
+def test_tab_background_is_dark(window):
+    """The Editor/Table/Plot tab strip must render dark, never system-white.
+
+    This guards against the native tab bar painting a light background that the
+    stylesheet leaves uncovered. It samples the tab strip and checks that the
+    dominant colour (the background) is dark, tolerating the lighter grey of the
+    inactive tab labels that sit on top.
+    """
+    import collections
+
+    window.resize(900, 600)
+    window.show()
+    from PyQt6.QtTest import QTest
+
+    QTest.qWaitForWindowExposed(window.view)
+    img = window.tabs.grab().toImage()
+    counts = collections.Counter()
+    for gx in range(80, 820, 12):
+        for gy in range(4, 34, 3):
+            counts[img.pixelColor(gx, gy).name()] += 1
+
+    dominant = counts.most_common(1)[0][0] if counts else None
+    assert dominant is not None, "could not sample any tab-strip pixels"
+    r, g, b = (int(dominant[i : i + 2], 16) for i in (1, 3, 5))
+    lum = (r + g + b) / 3
+    assert lum < 100, f"dominant tab-strip colour is too light: {dominant} (lum={lum:.0f})"
 
 
 def _set_unit_line(window) -> None:

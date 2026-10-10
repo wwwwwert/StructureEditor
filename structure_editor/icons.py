@@ -31,8 +31,8 @@ _PATHS: dict[str, str] = {
     ),
     # circle
     "circle": "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z",
-    # ellipse treated as circle-ish; use "lens" alternative
-    "ellipse": ("M12 4C9.79 4 8 6.69 8 10s1.79 6 4 6 4-2.69 4-6-1.79-6-4-6z"),
+    # ellipse: a clearly wide, low oval (distinct from the filled circle)
+    "ellipse": "M12 4C7.03 4 3 7.58 3 12s4.03 8 9 8 9-3.58 9-8-4.03-8-9-8zm0 3c1.93 0 3.5 1.57 3.5 5s-1.57 5-3.5 5-3.5-1.57-3.5-5 1.57-5 3.5-5z",
     # polygon / hexagon
     "hexagon": (
         "M14 3h-4L4 7v10l6 4h4l6-4V7l-6-4zm1.3 2.8l3.7 2.4v5.6l-3.7 2.4h-2.6"

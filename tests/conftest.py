@@ -12,13 +12,19 @@ from PIL import Image
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QApplication
 
+from structure_editor.app import configure_application
 from structure_editor.main_window import MainWindow
 
 
 @pytest.fixture(scope="session")
 def qapp():
-    """A single QApplication for the whole test session (headless)."""
+    """A single QApplication for the whole test session (headless).
+
+    Themed exactly like the real app (palette + stylesheet) so tests exercise
+    the actual dark Material rendering instead of an unthemed default.
+    """
     app = QApplication.instance() or QApplication([])
+    configure_application(app)
     yield app
 
 

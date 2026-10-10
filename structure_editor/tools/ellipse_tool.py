@@ -28,11 +28,10 @@ class EllipseTool(SelectionTool):
 
     def on_press(self, event) -> None:
         self._start = self.scene_point(event)
+        x, y = self._start
         if self._phase == "first":
-            x, y = self._start
             self.first_axis = (x, y, x, y)
         else:
-            x1, y1, x2, y2 = self.first_axis
             self.second_axis = (x, y, x, y)
 
     def on_move(self, event) -> None:

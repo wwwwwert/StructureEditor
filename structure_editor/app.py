@@ -47,6 +47,17 @@ def _apply_palette(app: QApplication) -> None:
     app.setPalette(pal)
 
 
+def configure_application(app: QApplication) -> None:
+    """Apply the palette and stylesheet to an existing QApplication.
+
+    Keeping this separate from :func:`create_application` lets tests host a
+    window on a QApplication that is themed exactly like the real one, so
+    styling behaviour is exercised rather than an unthemed default.
+    """
+    _apply_palette(app)
+    app.setStyleSheet(load_theme())
+
+
 def create_application(argv=None) -> QApplication:
     """Create and configure the QApplication with the dark Material theme."""
     # Allow fractional / per-display DPI so vector icons stay crisp.
@@ -56,8 +67,7 @@ def create_application(argv=None) -> QApplication:
     app = QApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("Structure Editor")
     app.setOrganizationName("StructureEditor")
-    _apply_palette(app)
-    app.setStyleSheet(load_theme())
+    configure_application(app)
     return app
 
 

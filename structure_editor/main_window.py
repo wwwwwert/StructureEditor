@@ -82,7 +82,9 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ UI
     def _build_ui(self) -> None:
         self.tabs = QTabWidget(self)
-        self.tabs.setDocumentMode(True)
+        # Keep the standard (non-document) tab style: document mode can make the
+        # tab strip render with a native light background that QSS cannot paint.
+        self.tabs.setDocumentMode(False)
 
         self.editor_page = QWidget()
         lay = QVBoxLayout(self.editor_page)

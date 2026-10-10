@@ -5,7 +5,8 @@
 
 * {
     outline: none;
-    font-family: "Inter", "Segoe UI", "Helvetica Neue", "Ubuntu", sans-serif;
+    font-family: "-apple-system", "SF Pro Text", "Segoe UI", "Helvetica Neue",
+        "Ubuntu", "Inter", sans-serif;
     font-size: 13px;
 }
 
@@ -105,30 +106,38 @@ QToolButton::menu-indicator {
 
 /* ======================== Tabs ======================== */
 QTabWidget::pane {
-    border: 1px solid #262c38;
+    border: 1px solid #1e222b;
     background-color: #1e222b;
 }
 
+/* Give the whole tab strip an opaque dark background so no native style can
+   paint it light. Tabs themselves also use opaque fills for every state. */
 QTabBar {
-    background: transparent;
+    background: #1e222b;
+}
+QTabBar::tab:top {
+    margin-top: 6px;
 }
 QTabBar::tab {
-    background: transparent;
+    background: #262c38;
     color: #9aa3b2;
-    padding: 9px 20px;
+    padding: 8px 22px;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
     margin-right: 2px;
     font-weight: 600;
 }
-QTabBar::tab:hover {
+QTabBar::tab:selected {
+    background: #1e222b;
+    color: #ffffff;
+}
+QTabBar::tab:hover:!selected {
+    background: #2c3340;
     color: #dfe5ee;
 }
-QTabBar::tab:selected {
-    color: #ffffff;
-    border-bottom: 2px solid #bb86fc;
-}
 QTabBar::tab:disabled {
+    background: #1e222b;
     color: #6a7280;
 }
 
@@ -305,9 +314,6 @@ QGraphicsView {
     background-color: #10131a;
     border: 1px solid #262c38;
     border-radius: 10px;
-}
-QGraphicsView:focus {
-    border-color: #bb86fc;
 }
 
 /* ======================== Dialogs ======================== */
