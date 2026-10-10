@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "structure-editor"
+version = "0.1.0"
+description = "Program for microstructure photographs analysis and particles dimensions evaluation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "PyQt6>=6.6.0",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "shapely>=2.0",
+    "kaleido>=0.2.1",
+    "plotly>=5.18",
+]
+
+[project.optional-dependencies]
+vision = [
+    "opencv-python>=4.8",
+    "scikit-image>=0.21",
+    "scipy>=1.11",
+    "tqdm>=4.66",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-qt>=4.3",
+    "Pillow>=10.0",
+    "ruff>=0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["structure_editor"]
+
+[project.scripts]
+structure-editor = "structure_editor.app:run"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # line length is advisory; formatter enforces wrap at 100
