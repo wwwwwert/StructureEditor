@@ -12,14 +12,13 @@ from __future__ import annotations
 import contextlib
 from pathlib import Path
 
-from PyQt6.QtCore import QPointF, Qt
+from PyQt6.QtCore import QPointF, QSize, Qt
 from PyQt6.QtGui import QAction, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
     QFileDialog,
     QLabel,
     QMainWindow,
     QSplitter,
-    QStyle,
     QTableView,
     QTabWidget,
     QToolBar,
@@ -77,7 +76,7 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
         self._build_menus_and_toolbar()
-        self._apply_style()
+        self._build_icons()
         self._update_action_states()
 
     # ------------------------------------------------------------------ UI
@@ -127,42 +126,33 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.plot_page, "Plot")
         self.setCentralWidget(self.tabs)
 
-    def _apply_style(self) -> None:
-        """Apply a compact, modern QSS theme."""
-        self.setStyleSheet(
-            """
-            QMainWindow, QWidget { background: #1f2430; color: #e6e6e6; }
-            QToolBar { background: #282e3b; border: none; padding: 4px; spacing: 2px; }
-            QToolBar QToolButton {
-                background: transparent; border: none; border-radius: 6px;
-                padding: 5px 8px; color: #d7dae0;
-            }
-            QToolBar QToolButton:hover { background: #37415a; }
-            QToolBar QToolButton:pressed { background: #43507a; }
-            QToolBar QToolButton:checked { background: #3d6bd0; color: #ffffff; }
-            QSplitter::handle { background: #2c3340; width: 2px; }
-            QTabWidget::pane { border: 1px solid #2c3340; }
-            QTabBar::tab {
-                background: #282e3b; color: #b9bec9; padding: 6px 14px;
-                border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px;
-            }
-            QTabBar::tab:selected { background: #3d6bd0; color: #ffffff; }
-            QMenuBar { background: #20242e; }
-            QMenuBar::item { padding: 5px 8px; }
-            QMenuBar::item:selected { background: #3d6bd0; }
-            QMenu { background: #282e3b; border: 1px solid #2c3340; padding: 4px; }
-            QMenu::item { padding: 5px 24px; }
-            QMenu::item:selected { background: #3d6bd0; }
-            QStatusBar, QLabel { color: #b9bec9; }
-            QTableView {
-                background: #1f2430; alternate-background-color: #232936;
-                gridline-color: #2c3340; selection-background-color: #3d6bd0;
-            }
-            QHeaderView::section {
-                background: #282e3b; color: #e6e6e6; border: none; padding: 5px;
-            }
-            """
-        )
+    def _build_icons(self) -> None:
+        """Assign crisp vector Material icons to every action.
+
+        Icons are rendered at runtime from embedded SVG paths (``icons.py``) and
+        tinted with the theme accent, so the toolbar stays sharp on any display
+        and never falls back to low-resolution system icons.
+        """
+        from structure_editor import icons
+
+        surface = icons.on_surface()
+        mapping = {
+            self.act_open: "image",
+            self.act_export: "download",
+            self.act_unit_line: "straighten",
+            self.act_circle: "circle",
+            self.act_ellipse: "ellipse",
+            self.act_polygon: "hexagon",
+            self.act_freehand: "draw",
+            self.act_detect: "radar",
+            self.act_move: "pan_tool",
+            self.act_delete_selected: "close",
+            self.act_remove_all: "delete",
+            self.act_build: "bar_chart",
+            self.act_toggle_overlay: "layers",
+        }
+        for act, name in mapping.items():
+            act.setIcon(icons.make(name, surface))
 
     def _build_menus_and_toolbar(self) -> None:
         self._build_file_menu()
@@ -173,21 +163,13 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------- menus
     def _build_file_menu(self) -> None:
         file_menu = self.menuBar().addMenu("&File")
-        self.act_open = QAction(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton),
-            "Open image...",
-            self,
-        )
+        self.act_open = QAction("Open image...", self)
         self.act_open.setShortcut(QKeySequence.StandardKey.Open)
         self.act_open.triggered.connect(self.open_image)
         file_menu.addAction(self.act_open)
 
         file_menu.addSeparator()
-        self.act_export = QAction(
-            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
-            "Export markup as PNG",
-            self,
-        )
+        self.act_export = QAction("Export markup as PNG", self)
         self.act_export.triggered.connect(self.export_markup)
         file_menu.addAction(self.act_export)
 
@@ -260,48 +242,35 @@ class MainWindow(QMainWindow):
 
     # ---------------------------------------------------------- toolbar
     def _build_toolbar(self) -> None:
-        from structure_editor import icons
-
         toolbar = QToolBar("Tools", self)
         toolbar.setMovable(False)
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        toolbar.setIconSize(QSize(18, 18))
         self.addToolBar(toolbar)
 
-        # File
         toolbar.addAction(self.act_open)
         toolbar.addSeparator()
 
-        # Measurement / calibration
-        self.act_unit_line.setIcon(icons.make("unit_line"))
+        # Calibration
         self.act_unit_line.setToolTip("Calibrate pixels to a known physical length")
         toolbar.addAction(self.act_unit_line)
         toolbar.addSeparator()
 
         # Drawing tools
-        for name, act in (
-            ("circle", self.act_circle),
-            ("ellipse", self.act_ellipse),
-            ("polygon", self.act_polygon),
-            ("freehand", self.act_freehand),
-            ("detect", self.act_detect),
-        ):
-            act.setIcon(icons.make(name))
-            toolbar.addAction(act)
+        toolbar.addAction(self.act_circle)
+        toolbar.addAction(self.act_ellipse)
+        toolbar.addAction(self.act_polygon)
+        toolbar.addAction(self.act_freehand)
+        toolbar.addAction(self.act_detect)
         toolbar.addSeparator()
 
         # Edit actions
-        self.act_move.setIcon(icons.make("move"))
         self.act_move.setToolTip("Drag shapes around or click to select them")
         toolbar.addAction(self.act_move)
-
-        self.act_delete_selected.setIcon(icons.make("delete"))
         toolbar.addAction(self.act_delete_selected)
-
-        self.act_remove_all.setIcon(icons.make("remove_all"))
         toolbar.addAction(self.act_remove_all)
         toolbar.addSeparator()
 
-        self.act_build.setIcon(icons.make("graph"))
         toolbar.addAction(self.act_build)
 
     # ------------------------------------------------------------- tools

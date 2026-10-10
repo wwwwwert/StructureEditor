@@ -1,86 +1,112 @@
-"""Lightweight Material-style line icons drawn at runtime.
+"""Vector Material icons rendered at runtime for a crisp, modern toolbar.
 
-These are rendered with :class:`QPainter` onto transparent pixmaps so the UI
-does not depend on any external icon theme, font or asset directory. Icons are
-simple two-tone line glyphs in the current highlight color, matching Material's
-"outlined" look.
+Icons are the official Material Symbols path data (Apache 2.0) embedded as SVG
+and painted through :class:`QSvgRenderer` onto a target-sized pixmap. Because
+they are vectors they stay sharp on any display scale, and the fill color is
+re-applied by the theme so each icon matches the active accent.
 """
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QPointF, Qt
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtCore import QByteArray, QRectF, Qt
+from PyQt6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PyQt6.QtSvg import QSvgRenderer
 
-_ACCENT = "#3d6bd0"
-_SIZE = 24  # px, matches a typical toolbar icon
+# Size of the logical icon canvas in device-independent pixels.
+_BASE = 24
+
+# Material Symbols path data (fill-rule paths, currentColor).
+_PATHS: dict[str, str] = {
+    # image / open
+    "image": (
+        "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 "
+        "2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+    ),
+    # export / download
+    "download": ("M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"),
+    # ruler / straighten (unit line calibration)
+    "straighten": (
+        "M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-"
+        "2-2-2zm0 10H3V8h2v4h2V8h2v4h2V8h2v4h2V8h2v4h2V8h2v8z"
+    ),
+    # circle
+    "circle": "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z",
+    # ellipse treated as circle-ish; use "lens" alternative
+    "ellipse": ("M12 4C9.79 4 8 6.69 8 10s1.79 6 4 6 4-2.69 4-6-1.79-6-4-6z"),
+    # polygon / hexagon
+    "hexagon": (
+        "M14 3h-4L4 7v10l6 4h4l6-4V7l-6-4zm1.3 2.8l3.7 2.4v5.6l-3.7 2.4h-2.6"
+        "l-3.7-2.4V8.2l3.7-2.4h2.6z"
+    ),
+    # freehand / draw
+    "draw": (
+        "M18.85 10.39l1.06-1.06c.78-.78.78-2.05 0-2.83L18.5 5.15a1.98 1.98 0 0 0"
+        "-2.83 0l-1.06 1.06 4.24 4.18zm-5.66 5.66l-4.24-4.18 3.54-3.54 4.24 4.18"
+        "-3.54 3.54zM3 21l3.54-6.36 5.66 5.66L3 21z"
+    ),
+    # auto detect / search (material "search")
+    "radar": (
+        "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3 "
+        "S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99"
+        "L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 "
+        "11.99 14 9.5 14z"
+    ),
+    # finger / move-select
+    "pan_tool": (
+        "M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26"
+        "-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31"
+        " 2.46V4c0-1.1.9-2 2-2s2 .9 2 2v7h2V1.5c0-1.1.9-2 2-2s2 .9 2 2V11h2V2.5c0"
+        "-1.1.9-2 2-2s2 .9 2 2V11h2V5.5c0-1.1.9-2 2-2s2 .9 2 2z"
+    ),
+    # delete selected
+    "close": "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+    # remove all / delete
+    "delete": ("M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"),
+    # graph / bar chart
+    "bar_chart": "M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z",
+    # overlay / layers
+    "layers": (
+        "M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36"
+        "-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"
+    ),
+}
 
 
-def _pen(width: float = 2.0) -> QPen:
-    pen = QPen(QColor(_ACCENT))
-    pen.setWidthF(width)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    return pen
-
-
-def _canvas() -> tuple[QPixmap, QPainter]:
-    pix = QPixmap(_SIZE, _SIZE)
+def _material_icon(svg_path: str, color: QColor, size: int) -> QIcon | None:
+    """Render one Material path into a themed, DPI-aware icon."""
+    color_hex = color.name()
+    body = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+        f'width="{size}" height="{size}">'
+        f'<path fill="{color_hex}" d="{svg_path}"/></svg>'
+    )
+    renderer = QSvgRenderer(QByteArray(str.encode(body)))
+    pix = QPixmap(size, size)
     pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    return pix, painter
+    renderer.render(painter, QRectF(0, 0, size, size))
+    painter.end()
+    icon = QIcon(pix)
+    icon.addPixmap(pix, QIcon.Mode.Normal, QIcon.State.Off)
+    return icon
 
 
-def _icon(spec: str) -> QIcon:
-    """Build an icon from a small drawing spec.
+def make(name: str, color: QColor | None = None) -> QIcon:
+    """Return the themed Material icon for *name*.
 
-    Commands: ``L x1 y1 x2 y2`` (line), ``E cx cy rx ry`` (ellipse),
-    ``P x1,y1 x2,y2 ...`` (polygon/polyline), ``D x y r`` (dot/filled circle).
+    Falls back to an overlaid material glyph when the exact symbol is not in the
+    table, and to a neutral fallback if nothing is known.
     """
-    pix, p = _canvas()
-    p.setPen(_pen())
-    for seg in spec.split(";"):
-        parts = seg.split()
-        if not parts:
-            continue
-        cmd, args = parts[0], parts[1:]
-        if cmd == "L":
-            x1, y1, x2, y2 = map(float, args[:4])
-            p.drawLine(QPointF(x1, y1), QPointF(x2, y2))
-        elif cmd == "E":
-            cx, cy, rx, ry = map(float, args[:4])
-            p.drawEllipse(QPointF(cx, cy), rx, ry)
-        elif cmd == "P":
-            pts = [QPointF(*map(float, a.split(","))) for a in args]
-            path = QPainterPath()
-            path.moveTo(pts[0])
-            for pt in pts[1:]:
-                path.lineTo(pt)
-            p.drawPath(path)
-        elif cmd.startswith("D"):
-            cx, cy, r = map(float, args[:3])
-            p.setBrush(QColor(_ACCENT))
-            p.drawEllipse(QPointF(cx, cy), r, r)
-            p.setBrush(Qt.BrushStyle.NoBrush)
-    p.end()
-    return QIcon(pix)
+    path = _PATHS.get(name)
+    if path is None:
+        # fall back to a generic rounded square so actions stay visible
+        path = _PATHS["layers"]
+    color = color or QColor("#e1e6ef")
+    size = _BASE
+    return _material_icon(path, color, size)
 
 
-def make(name: str) -> QIcon:
-    """Return the icon for a named tool/action, or an empty icon if unknown."""
-    specs = {
-        "circle": "E 12 12 4 4",
-        "ellipse": "E 12 12 5 3",
-        "polygon": "P 12,4 20,9 17,19 7,19 4,9",
-        "freehand": "P 3,18 6,8 9,14 12,6 15,13 18,7 21,15",
-        "detect": "E 12 12 5 5;E 12 12 9 9;D 12 12 1.5",
-        "move": "L 12 3 12 21;L 3 12 21 12;L 6 6 12 12 6 18;L 18 6 12 12 18 18",
-        "delete": "P 5,7 19,7 10,20 8,10;D 15 11 1",
-        "remove_all": "P 4,8 20,8 12,20;L 3 8 21 8;L 10 4 14 4",
-        "unit_line": "L 3 12 21 12;L 7 8 7 16;L 17 8 17 16;D 3 12 1.5;D 21 12 1.5",
-        "graph": "L 4 20 20 20;L 7 16 7 8;L 12 16 12 4;L 17 16 17 10",
-    }
-    spec = specs.get(name)
-    if spec is None:
-        return QIcon()
-    return _icon(spec)
+def on_surface() -> QColor:
+    """Default icon color for the dark surface."""
+    return QColor("#e6e8ef")

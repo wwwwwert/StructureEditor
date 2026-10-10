@@ -8,7 +8,8 @@ a unit line, and produce a histogram and measurement table of their sizes.
 
 ## Features
 
-- **Modern PyQt6 UI** styled with QSS (dark theme).
+- **Modern dark Material PyQt6 UI**: QSS + application palette plus crisp,
+  runtime-rendered vector Material icons (no external icon theme needed).
 - Markup tools: **circle**, **ellipse**, **polyhedron**, **amorphous/freehand**
   and **unit line** selection.
 - Automatic circle detection (OpenCV) via Distance-Transform, Filter2D and
@@ -72,7 +73,7 @@ structure_editor/
   main_window.py         # menu, toolbar, tabs; wires tools to the canvas
   config.py              # config.json + DPI proportion scaling
   dialogs.py             # modal dialogs (length/units, bounding figure, ...)
-  icons.py               # runtime Material-style line icons (no assets)
+  icons.py               # runtime vector Material icons (SVG paths, no assets)
   model/                 # shapes (inheritance) + objects manager
   canvas/                # scenes, views, controller (one object for both layers)
   tools/                 # interactive selection tools + auto-detection
